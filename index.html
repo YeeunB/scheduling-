@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>일정 맞추기</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;min-height:100vh;display:flex;justify-content:center;padding:2rem 1rem}
+.container{width:100%;max-width:520px}
+.card{background:#fff;border-radius:16px;padding:1.5rem;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:1rem}
+h1{font-size:20px;font-weight:600;color:#1a1a1a;margin-bottom:4px}
+h2{font-size:17px;font-weight:600;color:#1a1a1a;margin-bottom:4px}
+.sub{font-size:13px;color:#888;margin-bottom:1.25rem}
+.field{margin-bottom:1rem}
+.field label{display:block;font-size:13px;color:#666;margin-bottom:5px;font-weight:500}
+input[type=text]{width:100%;height:40px;padding:0 12px;border-radius:10px;border:1px solid #e0e0e0;font-size:14px;color:#1a1a1a;background:#fafafa;outline:none;transition:border .15s}
+input[type=text]:focus{border-color:#378ADD;background:#fff}
+.btn{height:40px;padding:0 18px;border-radius:10px;border:1px solid #e0e0e0;background:#fff;color:#1a1a1a;cursor:pointer;font-size:14px;font-family:inherit;transition:background .12s}
+.btn:hover{background:#f0f0f0}
+.btn-primary{background:#378ADD;color:#fff;border-color:transparent;font-weight:600}
+.btn-primary:hover{background:#2a72c3}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.color-row{display:flex;gap:8px;flex-wrap:wrap}
+.cdot{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .12s,border .12s}
+.cdot.sel{border-color:#1a1a1a;transform:scale(1.18)}
+.cdot.taken{opacity:.22;cursor:not-allowed}
+.participants{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:.75rem}
+.tag{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:99px;font-size:13px;font-weight:600;border:2px solid transparent}
+.month-nav{display:flex;align-items:center;gap:10px;margin-bottom:.6rem}
+.month-title{font-size:15px;font-weight:600;color:#1a1a1a;min-width:90px}
+.nav-btn{width:28px;height:28px;border-radius:8px;border:1px solid #e0e0e0;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.nav-btn:hover{background:#f0f0f0}
+.cal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:3px}
+.cal-head span{text-align:center;font-size:12px;color:#aaa;padding:3px 0}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.dc{min-height:64px;border-radius:10px;border:1px solid #f0f0f0;padding:5px;cursor:pointer;background:#fff;position:relative;user-select:none;transition:border .1s}
+.dc:hover:not(.other){border-color:#ccc}
+.dc.other{opacity:.2;pointer-events:none}
+.dc.today .dn{background:#E24B4A;color:#fff;border-radius:50%}
+.dn{font-size:12px;font-weight:600;color:#1a1a1a;width:21px;height:21px;display:flex;align-items:center;justify-content:center;margin-bottom:3px}
+.dots{display:flex;flex-wrap:wrap;gap:2px}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.hbar{height:3px;border-radius:2px;margin-top:4px}
+.fixed-ev{font-size:10px;padding:1px 4px;border-radius:3px;background:#FFEAEA;color:#c0392b;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.info-bar{font-size:13px;color:#888;margin-bottom:.6rem;min-height:18px}
+.info-bar.good{color:#0F6E56;font-weight:600}
+.share-section{background:#f0f7ff;border-radius:12px;padding:1rem;margin-top:1.25rem}
+.share-section .stitle{font-size:13px;color:#555;margin-bottom:8px;font-weight:500}
+.url-row{display:flex;gap:8px;align-items:center}
+.url-row input{flex:1;font-size:12px;color:#555;background:#fff;height:36px}
+.legend{margin-top:1rem;padding-top:1rem;border-top:1px solid #f0f0f0}
+.ltitle{font-size:13px;color:#888;margin-bottom:6px;font-weight:500}
+.li-row{font-size:13px;color:#1a1a1a;margin-bottom:4px}
+.li-names{font-weight:600}
+.copied-msg{font-size:12px;color:#1D9E75;margin-left:4px;opacity:0;transition:opacity .3s}
+.copied-msg.show{opacity:1}
+.screen{display:none}.screen.active{display:block}
+.hint{font-size:12px;color:#999;margin-bottom:1rem;line-height:1.5}
+.divider{border:none;border-top:1px solid #f0f0f0;margin:1.25rem 0}
+.my-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:13px;font-weight:600;border:2px solid transparent;margin-left:8px;vertical-align:middle}
+.loading{text-align:center;padding:2rem;color:#aaa;font-size:14px}
+.room-code{font-family:monospace;font-size:18px;font-weight:700;letter-spacing:3px;color:#378ADD;background:#EFF6FF;padding:8px 16px;border-radius:8px;display:inline-block;margin:8px 0}
+.online-dot{width:8px;height:8px;border-radius:50%;background:#1D9E75;display:inline-block;margin-right:4px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HOME -->
+  <div class="screen active card" id="s-home">
+    <h1>📅 일정 맞추기</h1>
+    <p class="sub">방을 만들고 링크를 공유하세요 — 실시간으로 동기화돼요</p>
+    <div class="field">
+      <label>방 제목</label>
+      <input type="text" id="roomTitle" placeholder="예: 4월 모임 날짜 정하기"/>
+    </div>
+    <div class="field">
+      <label>날짜 범위</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" id="rangeStart" placeholder="2026-03-16" style="width:140px"/>
+        <span style="color:#aaa;font-size:13px">~</span>
+        <input type="text" id="rangeEnd" placeholder="2026-04-30" style="width:140px"/>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="createRoom()">방 만들기</button>
+    </div>
+    <hr class="divider"/>
+    <p style="font-size:13px;color:#aaa;margin-bottom:.6rem">공유받은 링크로 입장</p>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="joinCode" placeholder="링크 또는 방 코드 입력"/>
+      <button class="btn" onclick="joinRoom()">입장</button>
+    </div>
+    <div id="homeError" style="font-size:12px;color:#E24B4A;margin-top:8px"></div>
+  </div>
+
+  <!-- NAME -->
+  <div class="screen card" id="s-name">
+    <h2 id="roomTitleDisp"></h2>
+    <p class="sub" id="roomSubDisp"></p>
+    <div class="field">
+      <label>이름</label>
+      <input type="text" id="myName" placeholder="홍길동"/>
+    </div>
+    <div class="field">
+      <label>색상</label>
+      <div class="color-row" id="colorPick2"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="enterRoom()">참여하기</button>
+      <button class="btn" onclick="goHome()">뒤로</button>
+    </div>
+    <div id="nameError" style="font-size:12px;color:#E24B4A;margin-top:8px"></div>
+  </div>
+
+  <!-- CALENDAR -->
+  <div class="screen card" id="s-cal">
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:4px">
+      <h2 id="calTitle" style="margin-bottom:0"></h2>
+      <span class="my-badge" id="myBadge"></span>
+      <span style="margin-left:auto;font-size:12px;color:#888"><span class="online-dot"></span>실시간 동기화</span>
+    </div>
+    <div class="hint">가능한 날짜를 클릭 또는 드래그로 표시 → 하단 링크 복사 → 친구에게 공유</div>
+    <div class="participants" id="participantTags"></div>
+    <div class="info-bar" id="infoBar"></div>
+    <div class="month-nav">
+      <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
+      <span class="month-title" id="monthTitle"></span>
+      <button class="nav-btn" onclick="changeMonth(1)">›</button>
+    </div>
+    <div class="cal-head">
+      <span style="color:#E24B4A">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span style="color:#378ADD">토</span>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="legend" id="legend" style="display:none">
+      <div class="ltitle">겹치는 날짜</div>
+      <div id="legendItems"></div>
+    </div>
+    <div class="share-section">
+      <div class="stitle">📎 이 링크를 복사해서 친구에게 공유하세요</div>
+      <div class="url-row">
+        <input type="text" id="shareUrl" readonly/>
+        <button class="btn btn-primary" onclick="copyUrl()">복사</button>
+      </div>
+      <div style="margin-top:6px"><span class="copied-msg" id="copiedMsg">✓ 복사됐어요!</span></div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import { getDatabase, ref, set, get, update, onValue } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBRgreldOpFko4xJIp8xMqv3LqogjgsWZQ",
+  authDomain: "sharing-schedule-62c22.firebaseapp.com",
+  databaseURL: "https://sharing-schedule-62c22-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "sharing-schedule-62c22",
+  storageBucket: "sharing-schedule-62c22.firebasestorage.app",
+  messagingSenderId: "267014545843",
+  appId: "1:267014545843:web:df8371cbc5ffbe99be2bc6"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const COLORS=[
+  {bg:'#E24B4A',light:'#FFEAEA',text:'#a32d2d'},
+  {bg:'#378ADD',light:'#E6F1FB',text:'#185FA5'},
+  {bg:'#1D9E75',light:'#E1F5EE',text:'#0F6E56'},
+  {bg:'#EF9F27',light:'#FFF3DC',text:'#854F0B'},
+  {bg:'#7F77DD',light:'#EEEDFE',text:'#534AB7'},
+  {bg:'#D4537E',light:'#FBEAF0',text:'#993556'},
+];
+
+let roomId=null, me=null, roomData=null, currentMonth=null;
+let isDragging=false, dragMode=null;
+let unsubscribe=null;
+
+function dkey(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
+function randId(){return Math.random().toString(36).slice(2,8).toUpperCase()}
+
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+window.goHome=function(){if(unsubscribe){unsubscribe();unsubscribe=null;}show('s-home')}
+
+// ── Create room ──────────────────────────────────
+window.createRoom=async function(){
+  const title=document.getElementById('roomTitle').value.trim()||'일정 조율';
+  const start=document.getElementById('rangeStart').value.trim()||'2026-03-16';
+  const end=document.getElementById('rangeEnd').value.trim()||'2026-04-30';
+  roomId=randId();
+  const data={title,start,end,participants:{}};
+  await set(ref(db,`rooms/${roomId}`),data);
+  roomData=data;
+  document.getElementById('roomTitleDisp').textContent=title;
+  document.getElementById('roomSubDisp').textContent=`${start} ~ ${end}`;
+  renderColorPick2([]);
+  show('s-name');
+}
+
+// ── Join room ────────────────────────────────────
+window.joinRoom=async function(){
+  const raw=document.getElementById('joinCode').value.trim();
+  let code='';
+  try{const u=new URL(raw);code=u.searchParams.get('room')||'';}catch(e){code=raw.toUpperCase();}
+  if(!code){document.getElementById('homeError').textContent='코드 또는 링크를 입력하세요';return}
+  document.getElementById('homeError').textContent='';
+  const snap=await get(ref(db,`rooms/${code}`));
+  if(!snap.exists()){document.getElementById('homeError').textContent='방을 찾을 수 없어요';return}
+  roomId=code;
+  roomData=snap.val();
+  document.getElementById('roomTitleDisp').textContent=roomData.title;
+  document.getElementById('roomSubDisp').textContent=`${roomData.start} ~ ${roomData.end}`;
+  const taken=Object.values(roomData.participants||{}).map(p=>p.colorIdx);
+  renderColorPick2(taken);
+  show('s-name');
+}
+
+// ── Color picker ─────────────────────────────────
+let selectedColor=0;
+function renderColorPick2(taken){
+  const avail=COLORS.map((_,i)=>i).filter(i=>!taken.includes(i));
+  selectedColor=avail[0]??0;
+  const el=document.getElementById('colorPick2');
+  el.innerHTML=COLORS.map((c,i)=>`<div class="cdot${i===selectedColor?' sel':''}${taken.includes(i)?' taken':''}" style="background:${c.bg}" id="cdot2-${i}" onclick="${taken.includes(i)?'':'window.selectColor2('+i+')'}"></div>`).join('');
+}
+window.selectColor2=function(i){
+  selectedColor=i;
+  document.querySelectorAll('[id^=cdot2-]').forEach(el=>el.classList.toggle('sel',parseInt(el.id.split('-')[1])===i));
+}
+
+// ── Enter room ───────────────────────────────────
+window.enterRoom=async function(){
+  const name=document.getElementById('myName').value.trim();
+  if(!name){document.getElementById('nameError').textContent='이름을 입력하세요';return}
+  document.getElementById('nameError').textContent='';
+  // 기존 참여자면 colorIdx 재사용
+  const existing=roomData.participants&&roomData.participants[name];
+  const colorIdx=existing?existing.colorIdx:selectedColor;
+  if(!existing){
+    await update(ref(db,`rooms/${roomId}/participants/${name}`),{name,colorIdx,days:[]});
+  }
+  me={name,colorIdx};
+  const [sy,sm]=roomData.start.split('-').map(Number);
+  currentMonth=new Date(sy,sm-1);
+  setupRealtimeListener();
+  goToCal();
+}
+
+// ── Realtime listener ────────────────────────────
+function setupRealtimeListener(){
+  if(unsubscribe)unsubscribe();
+  const roomRef=ref(db,`rooms/${roomId}`);
+  unsubscribe=onValue(roomRef,snap=>{
+    if(!snap.exists())return;
+    roomData=snap.val();
+    if(document.getElementById('s-cal').classList.contains('active')){
+      renderParticipantTags();
+      renderCal();
+    }
+  });
+}
+
+function goToCal(){
+  document.getElementById('calTitle').textContent=roomData.title;
+  const c=COLORS[me.colorIdx];
+  const badge=document.getElementById('myBadge');
+  badge.textContent=me.name;
+  badge.style.cssText=`background:${c.light};color:${c.text};border-color:${c.bg}`;
+  const url=`${location.origin}${location.pathname}?room=${roomId}`;
+  document.getElementById('shareUrl').value=url;
+  renderParticipantTags();
+  renderCal();
+  show('s-cal');
+}
+
+function getParticipants(){return Object.values(roomData.participants||{})}
+function getMyDays(){
+  const p=(roomData.participants||{})[me.name];
+  return p&&p.days?p.days:[];
+}
+
+function renderParticipantTags(){
+  const el=document.getElementById('participantTags');
+  el.innerHTML=getParticipants().map(p=>{
+    const c=COLORS[p.colorIdx];
+    return `<div class="tag" style="background:${c.light};color:${c.text};border-color:${c.bg}">
+      <span style="width:8px;height:8px;border-radius:50%;background:${c.bg};display:inline-block"></span>
+      ${p.name}${p.name===me.name?' (나)':''}
+    </div>`;
+  }).join('');
+}
+
+window.changeMonth=function(d){currentMonth=new Date(currentMonth.getFullYear(),currentMonth.getMonth()+d);renderCal()}
+
+function renderCal(){
+  const y=currentMonth.getFullYear(),m=currentMonth.getMonth();
+  const months=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  document.getElementById('monthTitle').textContent=`${y}년 ${months[m]}`;
+  const today=new Date();
+  const first=new Date(y,m,1).getDay(),last=new Date(y,m+1,0).getDate(),prevLast=new Date(y,m,0).getDate();
+  let cells=[];
+  for(let i=0;i<first;i++)cells.push({day:prevLast-first+1+i,cur:false,rm:m===0?11:m-1,ry:m===0?y-1:y});
+  for(let d=1;d<=last;d++)cells.push({day:d,cur:true,rm:m,ry:y});
+  while(cells.length%7!==0){const l=cells.length-first-last+1;cells.push({day:l,cur:false,rm:m===11?0:m+1,ry:m===11?y+1:y})}
+
+  const myDays=getMyDays();
+  const parts=getParticipants();
+  const grid=document.getElementById('calGrid');
+  grid.innerHTML=cells.map(c=>{
+    const key=dkey(c.ry,c.rm,c.day);
+    const isToday=c.cur&&today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===c.day;
+    const isMine=myDays.includes(key);
+    const present=parts.filter(p=>p.days&&p.days.includes(key));
+    const total=parts.length,count=present.length;
+    let heatColor='';
+    if(total>0&&count>0){const r=count/total;heatColor=r===1?'#1D9E75':r>=0.5?'#EF9F27':'#E24B4A';}
+    const myC=COLORS[me.colorIdx];
+    const mineStyle=isMine?`border-color:${myC.bg};border-width:2px;background:${myC.light};`:'';
+    const dotHtml=present.map(p=>`<div class="dot" style="background:${COLORS[p.colorIdx].bg}"></div>`).join('');
+    const heatHtml=count>0?`<div class="hbar" style="background:${heatColor};width:${Math.round(count/Math.max(total,1)*100)}%"></div>`:'';
+    return `<div class="dc${c.cur?'':' other'}${isToday?' today':''}" style="${mineStyle}"
+      data-key="${key}" onmousedown="window.onDown('${key}',${c.cur})" onmouseover="window.onOver('${key}',${c.cur})" onmouseup="window.onUp()">
+      <div class="dn">${c.day}</div><div class="dots">${dotHtml}</div>${heatHtml}</div>`;
+  }).join('');
+  renderLegend();
+  updateInfo();
+}
+
+async function toggleDay(key){
+  const myDays=[...getMyDays()];
+  const idx=myDays.indexOf(key);
+  if(idx>=0)myDays.splice(idx,1);else myDays.push(key);
+  await update(ref(db,`rooms/${roomId}/participants/${me.name}`),{days:myDays});
+}
+
+window.onDown=function(key,isCur){
+  if(!isCur)return;
+  isDragging=true;
+  dragMode=!getMyDays().includes(key);
+  applyDrag(key);
+}
+window.onOver=function(key,isCur){if(!isCur||!isDragging)return;applyDrag(key);}
+window.onUp=function(){isDragging=false;}
+document.addEventListener('mouseup',()=>{isDragging=false;});
+
+let dragQueue=new Set(),dragTimer=null;
+function applyDrag(key){
+  const myDays=getMyDays();
+  if(dragMode&&!myDays.includes(key)){dragQueue.add('add:'+key);}
+  else if(!dragMode&&myDays.includes(key)){dragQueue.add('remove:'+key);}
+  clearTimeout(dragTimer);
+  dragTimer=setTimeout(flushDrag,300);
+  // optimistic UI
+  const myDaysCopy=[...myDays];
+  dragQueue.forEach(q=>{const[op,k]=q.split(':');if(op==='add'&&!myDaysCopy.includes(k))myDaysCopy.push(k);else if(op==='remove'){const i=myDaysCopy.indexOf(k);if(i>=0)myDaysCopy.splice(i,1);}});
+  if(roomData.participants&&roomData.participants[me.name])roomData.participants[me.name].days=myDaysCopy;
+  renderCal();
+}
+async function flushDrag(){
+  if(!dragQueue.size)return;
+  const myDays=[...getMyDays()];
+  dragQueue.forEach(q=>{const[op,k]=q.split(':');if(op==='add'&&!myDays.includes(k))myDays.push(k);else if(op==='remove'){const i=myDays.indexOf(k);if(i>=0)myDays.splice(i,1);}});
+  dragQueue.clear();
+  await update(ref(db,`rooms/${roomId}/participants/${me.name}`),{days:myDays});
+}
+
+function renderLegend(){
+  const legend=document.getElementById('legend'),items=document.getElementById('legendItems');
+  const parts=getParticipants();
+  if(parts.length<2){legend.style.display='none';return}
+  const overlap={};
+  const allDays=new Set(parts.flatMap(p=>p.days||[]));
+  allDays.forEach(key=>{
+    const present=parts.filter(p=>p.days&&p.days.includes(key));
+    if(present.length>=2){
+      const label=present.map(p=>p.name).join(', ');
+      if(!overlap[label])overlap[label]=[];
+      const[,mm,dd]=key.split('-');
+      overlap[label].push(`${parseInt(mm)}/${parseInt(dd)}`);
+    }
+  });
+  if(!Object.keys(overlap).length){legend.style.display='none';return}
+  legend.style.display='block';
+  items.innerHTML=Object.entries(overlap).map(([label,days])=>
+    `<div class="li-row"><span class="li-names">${label}</span>: ${days.sort((a,b)=>{const[am,ad]=a.split('/');const[bm,bd]=b.split('/');return(parseInt(am)*100+parseInt(ad))-(parseInt(bm)*100+parseInt(bd))}).join(', ')}</div>`
+  ).join('');
+}
+
+function updateInfo(){
+  const bar=document.getElementById('infoBar');
+  const parts=getParticipants();
+  if(parts.length<2){bar.textContent='링크 공유하면 친구 일정이 실시간으로 나타나요.';bar.className='info-bar';return}
+  const allDays=new Set(parts.flatMap(p=>p.days||[]));
+  const both=[...allDays].filter(k=>parts.every(p=>p.days&&p.days.includes(k)));
+  if(both.length){
+    bar.textContent=`✓ 모두 가능: ${both.sort().map(k=>{const[,mm,dd]=k.split('-');return`${parseInt(mm)}/${parseInt(dd)}`}).join(', ')}`;
+    bar.className='info-bar good';
+  } else {
+    bar.textContent='아직 모두 겹치는 날짜가 없어요.';
+    bar.className='info-bar';
+  }
+}
+
+window.copyUrl=function(){
+  const url=document.getElementById('shareUrl').value;
+  navigator.clipboard.writeText(url).then(()=>showCopied()).catch(()=>{document.getElementById('shareUrl').select();document.execCommand('copy');showCopied();});
+}
+function showCopied(){const m=document.getElementById('copiedMsg');m.classList.add('show');setTimeout(()=>m.classList.remove('show'),2500);}
+
+// auto-join from URL
+(async()=>{
+  try{
+    const code=new URLSearchParams(location.search).get('room');
+    if(code){
+      document.getElementById('joinCode').value=code;
+      await window.joinRoom();
+    }
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
